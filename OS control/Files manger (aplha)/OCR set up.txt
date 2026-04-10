@@ -1,0 +1,62 @@
+ Dependencies Setup Guide
+
+#### 1. Poppler (Required for PDF → Image conversion)
+
+1. Download Poppler from:
+   https://github.com/oschwartz10612/poppler-windows/releases/
+
+2. Download the file:
+   **Release-25.12.0.zip**
+
+3. Extract the ZIP file.
+
+4. Locate the folder:
+
+   ```
+   poppler-25.12.0/Library/bin
+   ```
+
+5. Use this folder path in the code as **poppler_path**.
+
+Example:
+
+```python
+poppler_path = r"C:\path\to\poppler-25.12.0\Library\bin"
+```
+
+---
+
+#### 2. Tesseract OCR (Required for image text recognition)
+
+1. Download Tesseract from:
+   https://github.com/UB-Mannheim/tesseract/wiki
+
+2. Download the **.exe installer**.
+
+3. Run the installer and choose:
+   **Install for me**
+
+4. Keep all other options **default**.
+
+5. Default install location will be similar to:
+
+```
+C:\Users\<username>\AppData\Local\Programs\Tesseract-OCR\tesseract.exe
+```
+
+6. Set the path in Python:
+
+```python
+import pytesseract
+
+pytesseract.pytesseract.tesseract_cmd = r"C:\Users\<username>\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"
+```
+
+---
+
+### Summary
+
+| Tool      | Purpose                        |
+| --------- | ------------------------------ |
+| Poppler   | Convert PDF pages to images    |
+| Tesseract | Extract text from images (OCR) |

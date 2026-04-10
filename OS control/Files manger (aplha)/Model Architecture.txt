@@ -1,0 +1,135 @@
+Phase 1
+
+User file → extract text
+↓
+Generate embedding
+↓
+Compare with 15 subject embeddings
+↓
+Take argmax similarity
+↓
+Return subject
+↓
+Build path
+↓
+Move file
+
+-----------------------
+in simple 
+
+File → Text → Embedding
+Syllabus (15 subjects) → Embeddings (stored once)
+Compare → Argmax(similarity) → Subject
+
+
+
+--------------------- Debug this code (Problem Subject code repreted again and again)
+import pdfplumber
+import re
+import json
+
+PDF_PATH = "syllabus.pdf"
+OUTPUT_JSON = "subjects_cleaned.json"
+BRANCH = "CSE"
+SEMESTER = 6
+
+
+def extract_text(pdf_path):
+    text = ""
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            page_text = page.extract_text()
+            if page_text:
+                text += "\n" + page_text
+    return text
+
+
+def split_subjects(full_text):
+    # Subject pattern: ABC-XX-000: NAME
+    pattern = r"\n([A-Z]{2,}-[A-Z]{2,}-\d{3}:[^\n]+)"
+    matches = list(re.finditer(pattern, full_text))
+
+    subjects = []
+
+    for i, match in enumerate(matches):
+        start = match.start()
+
+        if i + 1 < len(matches):
+            end = matches[i + 1].start()
+        else:
+            end = len(full_text)
+
+        subject_block = full_text[start:end]
+        subjects.append(subject_block)
+
+    return subjects
+
+
+def clean_subject_block(block):
+    # Extract code + name
+    header_match = re.search(r"([A-Z]{2,}-[A-Z]{2,}-\d{3}):\s*(.+)", block)
+    if not header_match:
+        return None
+
+    subject_code = header_match.group(1).strip()
+    subject_name = header_match.group(2).strip()
+
+    # Remove noise sections
+    noise_patterns = [
+        r"Distribution of Continuous Evaluation:.*",
+        r"COURSE ARTICULATION MATRIX.*",
+        r"Evaluation Tools:.*",
+        r"Instructions for paper setting:.*",
+        r"Text Books.*",
+        r"Software required.*",
+        r"Attendance.*",
+    ]
+
+    for pattern in noise_patterns:
+        block = re.sub(pattern, "", block, flags=re.DOTALL | re.IGNORECASE)
+
+    # Extract Units and Course Outcomes
+    important_lines = []
+
+    for line in block.split("\n"):
+        line = line.strip()
+
+        if (
+            line.startswith("Unit")
+            or re.match(r"\d+\.\d+", line)
+            or "Course Outcomes" in line
+            or subject_code in line
+        ):
+            important_lines.append(line)
+
+    description = ", ".join(important_lines[:60])
+
+    return {
+        "subject_code": subject_code,
+        "subject_name": subject_name,
+        "branch": BRANCH,
+        "semester": SEMESTER,
+        "description": description
+    }
+
+
+def main():
+    full_text = extract_text(PDF_PATH)
+    subject_blocks = split_subjects(full_text)
+
+    subjects_data = []
+
+    for block in subject_blocks:
+        cleaned = clean_subject_block(block)
+        if cleaned:
+            subjects_data.append(cleaned)
+
+    with open(OUTPUT_JSON, "w", encoding="utf-8") as f:
+        json.dump(subjects_data, f, indent=4)
+
+    print(f"Generated {len(subjects_data)} subjects successfully!")
+
+
+if __name__ == "__main__":
+    main()
+--------------------------------------------------------------------------------------------------
