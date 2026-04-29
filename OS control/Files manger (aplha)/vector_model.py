@@ -99,7 +99,6 @@ if __name__ == "__main__":
 
     # Load mapping once
     code_to_name = load_code_name_mapping("subjects_Final.json")
-
     subject_name = code_to_name.get(subject_code, "Unknown Subject")
 
     print("\nPredicted Subject Code:", subject_code)
