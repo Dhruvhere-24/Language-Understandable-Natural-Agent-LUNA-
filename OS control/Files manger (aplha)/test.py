@@ -1,101 +1,119 @@
-import os
-import shutil
-from datetime import datetime, timedelta
-from typing import List, Dict
+import streamlit as st
+import time
 
-def get_recent_files(hours: int = 0, days: int = 0) -> List[str]:
-    """
-    Returns list of file paths from Downloads (including subfolders)
-    filtered by given time range and allowed extensions.
-    """
-    allowed_ext = [".pdf", ".docx", ".pptx"]
-    download_path = os.path.join(os.path.expanduser("~"), "Downloads")
+st.set_page_config(page_title="AI File Manager", layout="wide")
 
-    current_time = datetime.now()
-    allowed_time = timedelta(hours=hours, days=days)
+st.title("📂 AI File Manager")
+st.write("Automatically classify & organize your files")
 
-    all_files = []
+# -------------------------------
+# USER INPUT
+# -------------------------------
+col1, col2 = st.columns(2)
 
-    for root, _, files in os.walk(download_path):
-        for file in files:
-            full_path = os.path.join(root, file)
+with col1:
+    hours = st.selectbox("Select Time Range (Hours)", [1, 5, 12, 24], key="hours")
 
-            if any(file.lower().endswith(ext) for ext in allowed_ext):
-                all_files.append(full_path)
-
-    all_files.sort(
-        key=lambda x: os.path.getmtime(x),
-        reverse=True
+with col2:
+    base_path = st.text_input(
+        "Destination Folder",
+        value=r"D:\games\AI File_manager",
+        key="path"
     )
 
-    result = []
+st.caption("💡 Example: D:\\games\\AI File_manager")
 
-    for f in all_files:
-        mod_time = datetime.fromtimestamp(os.path.getmtime(f))
+# -------------------------------
+# SINGLE RUN BUTTON
+# -------------------------------
+if st.button("🚀 Run", key="run_main"):
 
-        if (current_time - mod_time) <= allowed_time:
-            result.append(f)
-        else:
-            break  # 🔥 optimization
+    status = st.empty()
+    progress = st.progress(0)
 
-    return result
+    # -------------------------------
+    # FAKE LOADING ANIMATION
+    # -------------------------------
+    messages = [
+        "🤖 Initializing model...",
+        "📦 Loading weights...",
+        "⚙️ Setting up environment...",
+        "🧠 Almost ready..."
+    ]
 
-def move_all_files(file_paths: Dict[str, List[str]], base_path: str):
+    for i, msg in enumerate(messages):
+        status.info(msg)
+        progress.progress((i + 1) * 10)
+        time.sleep(0.5)
 
-    for path, val in file_paths.items():
-        file_name = path
+    # -------------------------------
+    # REAL IMPORT (HEAVY)
+    # -------------------------------
+    with st.spinner("🚀 Finalizing model..."):
+        import test2 as core
 
-        # create folder path
-        drop_path = os.path.join(base_path, val[1])
+    progress.progress(40)
 
-        # 🔥 ensure folder exists
-        os.makedirs(drop_path, exist_ok=True)
+    # -------------------------------
+    # STEP 1: SCAN FILES
+    # -------------------------------
+    status.info("📂 Scanning files...")
+    files = core.get_recent_files(hours)
 
-        # final destination (include file name)
-        destination = os.path.join(drop_path, os.path.basename(file_name))
+    if not files:
+        status.warning("⚠️ No recent files found")
+        st.stop()
 
-        shutil.move(file_name, destination)
+    st.success(f"✅ Found {len(files)} files")
 
-        print(f"Moved → {destination}")
+    # -------------------------------
+    # STEP 2: MODEL
+    # -------------------------------
+    status.info("🤖 Running AI model...")
+    mapping = {idx: file for idx, file in enumerate(files)}
 
-def Dummy_model(paths: Dict[int, str]) -> Dict[str, List[str]] :
-    res = dict()
+    with st.spinner("Processing files..."):
+        res = core.model_check(mapping)
 
-    for key, val in paths.items():
+    # -------------------------------
+    # DISPLAY OUTPUT (CLEAN)
+    # -------------------------------
+    st.write("### 🧠 File Analysis")
 
-        # Vector model area {
-        subject_code = "xxx0z"
-        subject_name = "File_testing"
-        path = val
-        # }
+    for path, val in res.items():
 
-        if subject_code == "None" or subject_name == "None":
+        if path == "None":
+            st.warning("⚠️ No valid files detected")
             continue
 
-        if path not in res:
-            res[path] = []
+        file_name = core.os.path.basename(path)
 
-        # append tuple
-        res[path].extend([subject_code, subject_name])
+        with st.container(border=True):
+            st.write(f"📄 **{file_name}**")
+            st.caption(path)
+            st.success(f"Subject: {val[1]}")
+            st.info(f"Code: {val[0]}")
 
+    # -------------------------------
+    # STEP 3: MOVE FILES
+    # -------------------------------
+    status.info("📦 Moving files...")
+    progress.progress(80)
 
-    return res
+    logs = core.move_all_files(res, base_path)
 
+    # -------------------------------
+    # STEP 4: LOGS
+    # -------------------------------
+    st.write("### 📦 Operation Logs")
 
+    for log in logs:
+        if "✅" in log:
+            st.success(log)
+        elif "⚠️" in log:
+            st.warning(log)
+        else:
+            st.error(log)
 
-files = get_recent_files(1)
-mapping = {idx : file for idx, file in enumerate(files)}
-res = Dummy_model(mapping)
-print(res)
-# move_all_files(res, base_path=r"D:\games")
-
-# print(mapping)
-
-
-
-# if __name__ == "__main__":
-#     files = get_recent_files(hours=4)
-#     print(files)
-#     print("total files are :",len(files))
-
-    
+    progress.progress(100)
+    status.success("🎉 Process Completed!")
